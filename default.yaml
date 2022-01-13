@@ -1,0 +1,170 @@
+# this is an example of the Uber API
+# as a demonstration of an API spec in YAML
+swagger: '2.0'
+info:
+  title: Log API
+  description: log de registro de eventos de sistemas sag
+  version: "1.0.0"
+# the domain of the service
+# host: apilog.sag.gob.cl
+host: localhost:3000/api
+# array of all schemes that your API supports
+schemes:
+  # - https
+# will be prefixed to all paths
+# basePath: /v1
+produces:
+  - application/json
+paths:
+  /log:
+    get:
+      summary: obtener registros log
+      description: |
+        El endpoint retorna los log registrados.
+      parameters:
+        - name: sistemaId
+          in: query
+          description: identificador de sistema.
+          required: false
+          type: string
+        - name: tipo
+          in: query
+          description: tipo de evento.
+          required: false
+          type: string
+          enum:
+          - error
+          - insertar
+          - actualizar
+          - leer
+          - borrar
+          - info
+        - name: disparador
+          in: query
+          description: tipo de disparador.
+          required: false
+          type: string
+          enum:
+          - automatico
+          - manual
+      tags:
+        - log
+      responses:
+        200:
+          description: An array of logs
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Log'
+        500:
+          description: error servidor
+    post:
+      summary: crear nuevo registro log
+      tags:
+      - log
+      description: |
+        El endpoint registra los log.
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: body
+        description: log para registro
+        required: true
+        schema:
+          $ref: '#/definitions/LogRequest'
+      responses:
+        201:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Log'
+        401:
+          description: error en petición
+        500:
+          description: error en servidor
+definitions:
+  LogRequest:
+    type: object
+    required:
+    - sistemaId
+    properties:
+      sistemaId:
+        type: string
+        example: 61bcf10bc7434dc339ed8545
+      tipo:
+        type: string
+        example: insertar
+      descripcion:
+        type: string
+        example: test swagger
+      disparador:
+        type: string
+        example: manual
+      usuarioId:
+        type: integer
+        format: int32
+        example: 123
+      detalle:
+        type: object
+  Log:
+    type: object
+    properties:
+      evento:
+        $ref: '#/definitions/Evento'
+      sistema:
+        $ref: '#/definitions/Sistema'
+      estado:
+        type: boolean
+        description: estado de log
+      fechaRegistro:
+        type: string
+        format: date-time
+  Evento:
+    type: object
+    properties:
+      tipo:
+        type: string
+        description: tipo de evento.
+        enum:
+        - "error"
+        - "insertar"
+        - "actualizar"
+        - "leer"
+        - "borrar"
+        - "info"
+        default: "info"
+      descripcion:
+        type: string
+        description: descripción de evento.
+      disparador:
+        type: string
+        description: disparador de evento.
+        enum:
+        - "automatico"
+        - "manual"
+        default: "automatico"
+      usuario:
+        $ref: '#/definitions/Usuario'
+      detalle:
+        type: object
+        description: detalle disparador de evento
+  Sistema:
+    type: object
+    properties:
+      nombre:
+        type: number
+        description: id de sistema.
+      estado:
+        type: boolean
+        description: estado del sistema en la bd log.
+  Usuario:
+    type: object
+    properties:
+      id:
+        type: number
+        description: usuario id de sistema.
+      estado:
+        type: boolean
+        description: estado del usuario en la bd log.

@@ -1,0 +1,63 @@
+# Docker
+# Build a Docker image
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+trigger: none
+
+resources:
+- repo: self
+
+variables:
+  tag: '$(Build.BuildId)'
+  versionAPP: none
+
+stages:
+- stage: Build
+  displayName: Build image
+  
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-latest
+    steps:               
+    - task: CmdLine@2
+      displayName: 'Obtencion de version y seteo de variable'
+      inputs:
+        script: |
+          npmVersionString=$(node -p "require('./package.json').version")
+          echo $npmVersionString
+          echo "##vso[task.setvariable variable=versionAPP]$npmVersionString"
+
+    - task: CopyFiles@1
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)'
+        Contents: |
+          package.json
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
+        
+    #- task: npmAuthenticate@0
+    #  inputs:
+    #    workingFile: '.npmrc'
+
+    - task: Docker@2
+      displayName: Build an image
+      inputs:
+        containerRegistry: 'ACRMICSRV'
+        repository: 'logs-tranversal'
+        command: 'buildAndPush'
+        Dockerfile: '**/Dockerfile'
+        tags: '$(versionAPP)'
+        
+    - task: PowerShell@2
+      displayName: 'Actualización BuilName'
+      inputs:
+        targetType: 'inline'
+        script: |
+          $BuildName = '$(Build.BuildNumber)'+'_v'+'$(versionAPP)'
+          Write-Host "##vso[build.updatebuildnumber]$BuildName"
+          
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'config'
